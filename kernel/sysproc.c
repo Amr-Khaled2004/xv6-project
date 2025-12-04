@@ -6,6 +6,11 @@
 #include "spinlock.h"
 #include "proc.h"
 
+extern struct {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+} ptable;
+
 uint64
 sys_exit(void)
 {
@@ -90,4 +95,14 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+uint64
+sys_getppid(void)
+{
+    struct proc *p = myproc();
+    if(p->parent)
+      return p->parent->pid;
+   return -1;
+
+
 }

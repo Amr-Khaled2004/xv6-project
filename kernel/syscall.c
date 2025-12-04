@@ -78,6 +78,15 @@ argstr(int n, char *buf, int max)
   argaddr(n, &addr);
   return fetchstr(addr, buf, max);
 }
+void
+argptr(int n, char **pp, int size)
+{
+    uint64 addr;
+    struct proc *p = myproc();
+    addr = p->trapframe->a0; // or use argaddr if available
+    *pp = (char*)addr;
+}
+
 
 // Prototypes for the functions that handle system calls.
 extern uint64 sys_fork(void);
@@ -101,6 +110,19 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_kbdint(void);
+extern uint64 sys_countsyscall(void);
+extern uint64 sys_getppid(void);
+extern uint64 sys_urand(void);
+extern uint64 sys_shutdown(void);
+extern uint64 sys_datetime(void);
+extern uint64 sys_uptime(void);
+
+
+
+
+
+
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -126,11 +148,28 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-};
+[SYS_kbdint] sys_kbdint,
+[SYS_countsyscall] sys_countsyscall,
+[SYS_getppid] sys_getppid,
+[SYS_urand] sys_urand,
+[SYS_shutdown] sys_shutdown,
+[SYS_datetime] sys_datetime,
 
+
+
+
+
+
+
+
+
+
+};
+int syscall_count = 0;
 void
 syscall(void)
 {
+  ++syscall_count;
   int num;
   struct proc *p = myproc();
 

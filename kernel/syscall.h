@@ -20,3 +20,11 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_kbdint 22
+#define SYS_countsyscall  23
+#define SYS_getppid 24
+#define SYS_urand 25
+#define SYS_shutdown 26
+#define SYS_datetime 27
+// Add this system call number (use the next available number)
+  // Adjust based on your current highest number

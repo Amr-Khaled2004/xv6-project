@@ -21,6 +21,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "proc.h"
+int kbd_intr_count = 0;
 
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x
@@ -43,7 +44,7 @@ consputc(int c)
 
 struct {
   struct spinlock lock;
-  
+
   // input
 #define INPUT_BUF_SIZE 128
   char buf[INPUT_BUF_SIZE];
@@ -137,6 +138,7 @@ consoleintr(int c)
 {
   acquire(&cons.lock);
 
+  ++kbd_intr_count;
   switch(c){
   case C('P'):  // Print process list.
     procdump();
@@ -174,7 +176,7 @@ consoleintr(int c)
     }
     break;
   }
-  
+
   release(&cons.lock);
 }
 
