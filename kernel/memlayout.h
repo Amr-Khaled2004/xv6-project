@@ -60,3 +60,4 @@
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 #define CLINT 0x02000000L
+#define CLINT_MTIME (CLINT + 0xBFF8)

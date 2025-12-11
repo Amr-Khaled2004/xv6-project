@@ -1,6 +1,7 @@
 
 struct stat;
 struct timestruct;
+struct procinfo;
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -29,6 +30,9 @@ int getppid(void);
 int urand(void);
 int shutdown(void);
 int datetime(struct timestruct*);
+// Add function declaration
+int getptable(int nproc, char *buffer);
+
 // test comment to check git branching
 
 

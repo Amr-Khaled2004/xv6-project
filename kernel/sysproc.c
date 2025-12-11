@@ -5,7 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-
+extern int getptable(int nproc, char *buffer);
 extern struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -105,4 +105,19 @@ sys_getppid(void)
    return -1;
 
 
+}
+
+uint64
+sys_getptable(void)
+{
+    int nproc;
+    uint64 buffer;
+
+    // Get arguments
+    argint(0, &nproc);
+    argaddr(1, &buffer);
+
+    // The actual argument validation happens in getptable()
+    // We just pass the values along
+    return getptable(nproc, (char*)buffer);
 }

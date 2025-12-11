@@ -26,5 +26,7 @@
 #define SYS_urand 25
 #define SYS_shutdown 26
 #define SYS_datetime 27
+#define SYS_getptable 28   // pick next free number
+
 // Add this system call number (use the next available number)
   // Adjust based on your current highest number
