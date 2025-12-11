@@ -29,6 +29,8 @@ int getppid(void);
 int urand(void);
 int shutdown(void);
 int datetime(struct timestruct*);
+int setpriority(int pid, int newprio);
+
 // test comment to check git branching
 
 

@@ -115,6 +115,7 @@ struct proc {
   uint waiting_time;
   uint running_time;
 
+
 };
 // kernel/proc.h
 struct pstat {
@@ -127,6 +128,8 @@ struct pstat {
 #define SCHED_ROUND_ROBIN 0
 #define SCHED_FCFS        1
 #define SCHED_PRIORITY    2
+int setpriority(int pid, int newprio);
+
 
 
 extern int sched_mode;  // Declare global scheduler mode

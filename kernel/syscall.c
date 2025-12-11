@@ -117,6 +117,7 @@ extern uint64 sys_urand(void);
 extern uint64 sys_shutdown(void);
 extern uint64 sys_datetime(void);
 extern uint64 sys_uptime(void);
+extern uint64 sys_setpriority(void);
 
 
 
@@ -154,6 +155,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_urand] sys_urand,
 [SYS_shutdown] sys_shutdown,
 [SYS_datetime] sys_datetime,
+[SYS_setpriority] sys_setpriority,
 
 
 

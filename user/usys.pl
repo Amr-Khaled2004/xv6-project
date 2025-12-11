@@ -42,3 +42,4 @@ entry("getppid");
 entry("urand");
 entry("shutdown");
 entry("datetime");
+entry("setpriority");

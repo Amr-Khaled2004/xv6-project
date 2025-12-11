@@ -519,8 +519,8 @@ struct proc* pick_priority(){
   return selected;
 }
 //int sched_mode = SCHED_FCFS;
-int sched_mode = SCHED_ROUND_ROBIN;
-//int sched_mode = SCHED_PRIORITY;  // Assign the chosen scheduler here
+//int sched_mode = SCHED_ROUND_ROBIN;
+int sched_mode = SCHED_PRIORITY;  // Assign the chosen scheduler here
 struct proc *choose_next_process() {
     if(sched_mode == SCHED_ROUND_ROBIN) {
         for(struct proc *p = proc; p < &proc[NPROC]; p++){
@@ -724,6 +724,25 @@ setkilled(struct proc *p)
   p->killed = 1;
   release(&p->lock);
 }
+
+int
+setpriority(int pid, int newprio)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      p->priority = newprio;
+      release(&p->lock);
+      return 0;   // success
+    }
+    release(&p->lock);
+  }
+  return -1;  // process not found
+}
+
+
 
 int
 killed(struct proc *p)

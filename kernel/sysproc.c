@@ -5,6 +5,8 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "syscall.h"
+
 
 extern struct {
   struct spinlock lock;
@@ -105,4 +107,16 @@ sys_getppid(void)
    return -1;
 
 
+}
+
+uint64
+sys_setpriority(void)
+{
+    int pid, newprio;
+
+    // old-style xv6: argint returns void
+    argint(0, &pid);
+    argint(1, &newprio);
+
+    return setpriority(pid, newprio);
 }
