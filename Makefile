@@ -159,6 +159,8 @@ UPROGS=\
 	$U/_datetime\
 	$U/_uptime\
 	$U/_test\
+	$U/_schedtest\
+
 
 
 

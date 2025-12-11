@@ -123,12 +123,19 @@ allocproc(void)
     } else {
       release(&p->lock);
     }
-
   }
   return 0;
 
 found:
   p->pid = allocpid();
+
+  // initialize process timing and priority fields
+  p->creation_time = ticks;     // system tick at creation
+  p->priority = 10;             // default priority
+  p->waiting_time = 0;
+  p->running_time = 0;
+  // p->state will change later in fork(), not needed to duplicate
+
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -138,7 +145,7 @@ found:
     return 0;
   }
 
-  // An empty user page table.
+  // Create user pagetable.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
     freeproc(p);
@@ -146,18 +153,18 @@ found:
     return 0;
   }
 
-  // Set up new context to start executing at forkret,
-  // which returns to user space.
+  // Set up kernel context to start at forkret().
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
-  p->creation_time = ticks;
-  p->run_time = 0;
-
+  // ❌ REMOVE duplicate fields
+  // p->creation_time = ticks;   <-- REMOVE
+  // p->run_time = 0;            <-- WRONG variable name, REMOVE
 
   return p;
 }
+
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -454,35 +461,87 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-int sched_mode = SCHED_ROUND_ROBIN;  // Assign the chosen scheduler here
-struct proc *choose_next_process() {
 
-  struct proc *p;
+void update_time() {
+    struct proc *p;
 
-  if(sched_mode == SCHED_ROUND_ROBIN) {
-    for(p = proc; p < &proc[NPROC]; p++) {
-      if (p->state == RUNNABLE)
-        return p;
-      }
-  }
+    for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
 
-  // Add more else statements each time you create a new scheduler
+        if (p->state == RUNNING) {
+            p->running_time++;
+        }
+        else if (p->state == RUNNABLE) {
+            p->waiting_time++;
 
-  return 0;
+            // Aging to prevent starvation in priority scheduler
+            if (sched_mode == SCHED_PRIORITY) {
+                if (p->waiting_time % 50 == 0 && p->priority > 0) {
+                    p->priority--;  // improve priority
+                }
+            }
+        }
+
+        release(&p->lock);
+    }
 }
-void
-update_time()
-{
-  struct proc* p;
-  for (p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
-    if (p->state == RUNNING) {
-      p->run_time++;
+
+
+// ----------------------
+// FCFS Scheduler
+// ----------------------
+struct proc* pick_fcfs(){
+    struct proc *p, *selected = 0;
+
+    for(p = proc; p < &proc[NPROC]; p++){
+        if(p->state == RUNNABLE){
+            if(selected == 0 || p->creation_time < selected->creation_time){
+                selected = p;
+            }
+        }
+    }
+    return selected;
+}
+
+
+// ----------------------
+// Priority Scheduler
+// ----------------------
+struct proc* pick_priority(){
+  struct proc *p, *selected = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == RUNNABLE){
+      if(selected == 0 || p->priority < selected->priority)
+        selected = p;
+    }
+  }
+  return selected;
+}
+//int sched_mode = SCHED_FCFS;
+int sched_mode = SCHED_ROUND_ROBIN;
+//int sched_mode = SCHED_PRIORITY;  // Assign the chosen scheduler here
+struct proc *choose_next_process() {
+    if(sched_mode == SCHED_ROUND_ROBIN) {
+        for(struct proc *p = proc; p < &proc[NPROC]; p++){
+            if(p->state == RUNNABLE)
+                return p;
+        }
+    }
+    else if(sched_mode == SCHED_FCFS) {
+        return pick_fcfs();   // MUST return the earliest process
+    }
+    else if(sched_mode == SCHED_PRIORITY) {
+        return pick_priority();
     }
 
-    release(&p->lock);
-  }
+    return 0;
 }
+
+
+
+
+
 void
 scheduler(void)
 {

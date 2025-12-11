@@ -18,6 +18,9 @@ struct context {
   uint64 s11;
 };
 
+
+
+
 // Per-CPU state.
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
@@ -85,6 +88,8 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 struct proc {
   struct spinlock lock;
 
+
+
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   void *chan;                  // If non-zero, sleeping on chan
@@ -106,6 +111,10 @@ struct proc {
   char name[16];
   uint creation_time;          // Ticks when process was created
   uint run_time;               // How long the process has run              // Process name (debugging)
+ int priority;
+  uint waiting_time;
+  uint running_time;
+
 };
 // kernel/proc.h
 struct pstat {
@@ -117,5 +126,7 @@ struct pstat {
 };
 #define SCHED_ROUND_ROBIN 0
 #define SCHED_FCFS        1
+#define SCHED_PRIORITY    2
+
 
 extern int sched_mode;  // Declare global scheduler mode
