@@ -42,4 +42,7 @@ entry("getppid");
 entry("urand");
 entry("shutdown");
 entry("datetime");
+
+# --- BOTH system calls must be included ---
 entry("setpriority");
+entry("getptable");

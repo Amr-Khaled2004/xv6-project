@@ -1,6 +1,7 @@
-
 struct stat;
 struct timestruct;
+struct procinfo;
+
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -29,15 +30,10 @@ int getppid(void);
 int urand(void);
 int shutdown(void);
 int datetime(struct timestruct*);
+
+// --- BOTH SYSTEM CALLS ARE VALID IN PROJECT ---
 int setpriority(int pid, int newprio);
-
-// test comment to check git branching
-
-
-
-
-
-
+int getptable(int nproc, char *buffer);
 
 // ulib.c
 int stat(const char*, struct stat*);

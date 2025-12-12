@@ -11,8 +11,7 @@
 // Fallback if Makefile didn't supply -DBOOT_EPOCH
 #define BOOT_EPOCH 0
 #endif
-#define CLINT 0x02000000L
-#define CLINT_MTIME (CLINT + 0xBFF8)
+
 extern int kbd_intr_count;
 extern int syscall_count;
 
@@ -104,39 +103,39 @@ uint64 sys_shutdown(void) {
 
     return 0;
 }
+static uint64 read_mtime(void) {
+    // CLINT_MTIME is memory-mapped at 0x2000000 + 0xBFF8
+    volatile uint64 *mtime_ptr = (volatile uint64*)CLINT_MTIME;
+    return *mtime_ptr;
+}
 
-
-// Helper function to convert UNIX timestamp to timestruct
-static void unix_to_timestruct(uint64 unix_time, struct timestruct *ts) {
-    // Constants for time calculations
+// Convert UNIX timestamp to datetime with timezone
+static void unix_to_datetime(uint64 unix_time, struct timestruct *dt) {
+    // Constants
     const int days_per_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-    // Calculate total days since epoch
-    uint64 total_days = unix_time / 86400;
-    uint64 remaining_seconds = unix_time % 86400;
+    // Egypt is UTC+2 (7200 seconds)
+    uint64 local_time = unix_time + 7200;
+
+    // Calculate days and seconds
+    uint64 total_days = local_time / 86400;
+    uint64 remaining_seconds = local_time % 86400;
 
     // Calculate time of day
-    ts->hour = remaining_seconds / 3600;
-    ts->minute = (remaining_seconds % 3600) / 60;
-    ts->second = remaining_seconds % 60;
+    dt->hour = remaining_seconds / 3600;
+    dt->minute = (remaining_seconds % 3600) / 60;
+    dt->second = remaining_seconds % 60;
 
     // Calculate weekday (1970-01-01 was Thursday)
-    ts->weekday = (total_days + 4) % 7;
+    dt->weekday = (total_days + 4) % 7;
 
-    // Calculate year and month
+    // Calculate year
     int year = 1970;
-    int days_in_year;
 
     while (1) {
-        // Check for leap year
-        int is_leap = 0;
-        if (year % 4 == 0) {
-            if (year % 100 != 0 || year % 400 == 0) {
-                is_leap = 1;
-            }
-        }
-
-        days_in_year = is_leap ? 366 : 365;
+        // Check leap year
+        int is_leap = (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0);
+        int days_in_year = is_leap ? 366 : 365;
 
         if (total_days < days_in_year) {
             break;
@@ -146,24 +145,15 @@ static void unix_to_timestruct(uint64 unix_time, struct timestruct *ts) {
         year++;
     }
 
-    ts->year = year;
+    dt->year = year;
 
-    // Calculate month and day
+    // Calculate month
     int month = 0;
-    int is_leap = 0;
-
-    // Check if current year is leap
-    if (ts->year % 4 == 0) {
-        if (ts->year % 100 != 0 || ts->year % 400 == 0) {
-            is_leap = 1;
-        }
-    }
+    int is_leap = (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0);
 
     while (month < 12) {
         int days_in_month = days_per_month[month];
-
-        // Adjust for February in leap years
-        if (month == 1 && is_leap) {
+        if (month == 1 && is_leap) {  // February
             days_in_month = 29;
         }
 
@@ -175,20 +165,12 @@ static void unix_to_timestruct(uint64 unix_time, struct timestruct *ts) {
         month++;
     }
 
-    ts->month = month + 1;  // Convert to 1-based
-    ts->day = total_days + 1;  // Convert to 1-based
-}
-
-// Read time using RISC-V time CSR (most reliable)
-static uint64 read_time_csr(void) {
-    uint64 time;
-    // Read the time CSR
-    asm volatile("csrr %0, time" : "=r"(time));
-    return time;
+    dt->month = month + 1;  // 1-based
+    dt->day = total_days + 1;  // 1-based
 }
 
 uint64 sys_datetime(void) {
-    struct timestruct ts;
+    struct timestruct dt;
     uint64 addr;
 
     // Get user buffer address
@@ -198,22 +180,21 @@ uint64 sys_datetime(void) {
         return -1;
     }
 
-    // Read current time in cycles
-    uint64 time_cycles = read_time_csr();
+    // Read mtime register as per requirements
+    uint64 mtime_cycles = read_mtime();
 
     // Convert cycles to seconds
-    // QEMU virt machine: time CSR typically runs at 10 MHz
-    // 10,000,000 cycles = 1 second
-    uint64 seconds_since_boot = time_cycles / 10000000;
+    // QEMU virt machine: mtime runs at 10 MHz (10,000,000 cycles/sec)
+    uint64 seconds_since_boot = mtime_cycles / 10000000;
 
     // Calculate current UNIX time
     uint64 current_unix_time = BOOT_EPOCH + seconds_since_boot;
 
-    // Convert UNIX time to timestruct
-    unix_to_timestruct(current_unix_time, &ts);
+    // Convert to datetime (Egypt time UTC+2)
+    unix_to_datetime(current_unix_time, &dt);
 
     // Copy to user space
-    if (copyout(myproc()->pagetable, addr, (char *)&ts, sizeof(ts)) < 0) {
+    if (copyout(myproc()->pagetable, addr, (char *)&dt, sizeof(dt)) < 0) {
         return -1;
     }
 
